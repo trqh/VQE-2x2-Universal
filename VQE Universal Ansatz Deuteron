@@ -1,0 +1,74 @@
+#Importing useful facilities from libraries etc.
+from qiskit import *
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
+from qiskit.quantum_info import Pauli
+from qiskit.aqua.operators.state_fns import StateFn
+from qiskit.aqua.operators import X, Y, Z, I
+from qiskit.aqua.operators import PauliExpectation, CircuitSampler, StateFn
+from qiskit import Aer, execute
+from qiskit.aqua import QuantumInstance
+from qiskit.aqua.components.optimizers import COBYLA
+import unicodedata
+
+
+
+#Defining the UNIVERSAL ansatz function circuit with a variable parameter
+def var_circ(params):
+    circ = QuantumCircuit(2)
+    #Setting up a quantum circuit with 2 qubits
+    circ.u3(params[0], params[1], params [2], [0])
+    circ.u3(params[3], params[4], params [5], [1])
+    circ.cx([1], [0])
+    #Setting up first step of entaglement
+    circ.u3(params[6], params[7], params [8], [0])
+    circ.u3(params[9], params[10], params [11], [1])
+    circ.cx([0], [1])
+    #Setting up second step of entaglement
+    circ.u3(params[12], params[13], params [14], [0])
+    circ.u3(params[15], params[16], params [17], [1])
+    circ.cx([1], [0])
+    #Setting up third step of entaglement
+    circ.u3(params[18], params[19], params [20], [0])
+    circ.u3(params[21], params[22], params [23], [1])
+    psi = StateFn(circ)
+    #Converting the circuit into a state function
+    return psi
+    
+    
+    
+#Set the Hamiltonian in terms of Pauli operators
+op1 = 5.906709 * I^I 
+op2 = 0.218291 * Z^I
+op3 = -6.125 * I^Z
+op4 = -2.143304 * X^X 
+op5 = -2.143304 * Y^Y
+#Pauli operator components of Hamiltonian defined individually
+H2op = op1 + op2 + op3 + op4 + op5
+#Components combined into full Hamiltonian
+
+
+
+def objective_function(params):
+    # Obtain a state from quantum circuit
+    Ansatz_state = var_circ(params)
+    # Finds expectation value of state using hamiltonian
+    expectation_value = (~Ansatz_state @ H2op @ Ansatz_state).eval().real
+    return expectation_value
+    
+    
+    
+# Initialize the COBYLA optimizer
+optimizer = COBYLA(maxiter=500, tol=0.0001)
+
+# Create the initial parameters
+params = np.random.rand(24)
+ret = optimizer.optimize(num_vars=24, objective_function=objective_function, initial_point=params)
+
+#Obtain the minimum parameter, minimum state, and minimum expectation value
+Min_state = var_circ(ret[0])
+Min_value = round((~Min_state @ H2op @ Min_state).eval().real, 4)
+
+#Display the minimum values
+print('E\u2098\u1d62\u2099' + ' = ' + str(Min_value) + ' MeV')
